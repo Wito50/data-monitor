@@ -12,24 +12,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
+          java-version: '17'
 
-      - name: Install dependencies and Build APK
+      - name: Install Android SDK (SDK 31, Build Tools 31.0.0)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y zip unzip python3-pip openjdk-17-jdk
-          pip3 install --user buildozer cython
+          yes | sudo apt-get update
+          yes | sudo apt-get install -y zip unzip python3-pip openjdk-17-jdk
+          yes | sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk "platform-tools" "build-tools;31.0.0" "platforms;android-31"
 
-          # Verifica que buildozer.spec exista
+      - name: Install Buildozer and Compile
+        run: |
+          pip3 install --user buildozer cython
           if [ ! -f buildozer.spec ]; then
             buildozer init
           fi
-
-          # Compila el APK
           buildozer android debug
 
       - name: Upload APK
