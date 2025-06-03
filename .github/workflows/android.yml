@@ -23,7 +23,9 @@ jobs:
           mkdir -p $HOME/android-sdk/cmdline-tools
           cd $HOME/android-sdk/cmdline-tools
           curl -O https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-          unzip commandlinetools-linux-8512546_latest.zip -d latest
+          unzip commandlinetools-linux-8512546_latest.zip
+          mkdir -p latest
+          mv cmdline-tools latest/
           rm commandlinetools-linux-8512546_latest.zip
 
       - name: Set up ANDROID_HOME and PATH
