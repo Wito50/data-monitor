@@ -18,18 +18,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 12266719  # Usa versión 16.0
+
+      - name: Accept Android SDK licenses
         run: |
-          # Descargar e instalar las herramientas de línea de comandos del Android SDK
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
-          unzip /tmp/cmdline-tools.zip -d /tmp
-          mkdir -p $HOME/android-sdk/cmdline-tools/latest
-          mv /tmp/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
-          export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
-          # Instalar Build-Tools, NDK y plataformas
-          yes | sdkmanager "build-tools;33.0.2" "ndk;23.1.7779620" "platforms;android-31"
           yes | sdkmanager --licenses
+
+      - name: Install Build-Tools
+        run: |
+          sdkmanager "build-tools;33.0.2"
 
       - name: Install dependencies
         run: |
@@ -39,11 +39,7 @@ jobs:
 
       - name: Build APK with Buildozer
         run: |
-          export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
-          # Inicializar buildozer.spec si no existe
           buildozer init || true
-          # Compilar la APK
           buildozer android debug
 
       - name: Upload APK
