@@ -1,0 +1,39 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install dependencies and Build APK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip python3-pip openjdk-17-jdk
+          pip3 install --user buildozer cython
+
+          # Verifica que buildozer.spec exista
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
+
+          # Compila el APK
+          buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DataMonitor-APK
+          path: bin/*.apk
