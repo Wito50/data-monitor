@@ -28,7 +28,7 @@ jobs:
           mv cmdline-tools latest/
           rm commandlinetools-linux-8512546_latest.zip
 
-      - name: Set up ANDROID_HOME and PATH
+     - name: Set up ANDROID_HOME and PATH
         run: |
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
