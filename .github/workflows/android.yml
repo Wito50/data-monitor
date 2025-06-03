@@ -2,8 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
@@ -13,48 +12,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '17'
+          distribution: 'temurin'
 
-      - name: Download Android SDK Command-line Tools
-        run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools/latest
-          cd $HOME/android-sdk/cmdline-tools/latest
-          curl -O https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-          unzip commandlinetools-linux-8512546_latest.zip
-          rm commandlinetools-linux-8512546_latest.zip
-          mv cmdline-tools/* ./
-          rm -rf cmdline-tools
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13.0'
 
-      - name: Set up ANDROID_HOME and PATH
+      - name: Install Android Build-Tools and accept licenses
         run: |
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-
-      - name: Install Android SDK Packages
-        run: |
-          chmod +x $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager
-          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
-          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
-            "platform-tools" \
-            "platforms;android-31" \
-            "build-tools;33.0.2"
-
-      - name: Install Buildozer and Compile
-        run: |
+          # Instalar herramientas necesarias
+          sudo apt-get update
+          sudo apt-get install -y zip unzip python3-pip
           pip3 install --user buildozer cython
-          if [ ! -f buildozer.spec ]; then
-            buildozer init
-          fi
+
+          # Instalar Build-Tools y NDK específicos
+          sdkmanager "build-tools;33.0.2" "ndk;23.1.7779620" "platforms;android-31"
+          yes | sdkmanager --licenses
+
+      - name: Build APK with Buildozer
+        run: |
+          # Inicializar buildozer.spec si no existe
+          buildozer init || true
+          # Compilar la APK
           buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: DataMonitor-APK
-          path: bin/*.apk
+          path: ./bin/*.apk
