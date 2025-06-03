@@ -19,9 +19,10 @@ jobs:
           java-version: '17'
 
       - name: Install dependencies and Buildozer
-  run: |
-    sudo apt-get update
-    sudo apt-get install -y zip unzip python3-pip curl libncurses5-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip python3-pip curl libncurses5-dev
+          pip3 install --user --upgrade buildozer cython
 
       - name: Install Android SDK manually
         run: |
@@ -36,7 +37,7 @@ jobs:
 
       - name: Accept Licenses and Install SDK Packages
         run: |
-          sdkmanager --sdk_root=$HOME/android-sdk --licenses <<< "y"
+          yes | sdkmanager --sdk_root=$HOME/android-sdk --licenses
           sdkmanager --sdk_root=$HOME/android-sdk \
             "platform-tools" \
             "platforms;android-30" \
