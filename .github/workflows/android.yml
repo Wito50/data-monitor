@@ -12,38 +12,48 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
+          java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: 12266719  # Usa versión 16.0
-
-      - name: Accept Android SDK licenses
+      - name: Download Android SDK Command-line Tools
         run: |
-          yes | sdkmanager --licenses
+          mkdir -p $HOME/android-sdk/cmdline-tools/latest
+          cd $HOME/android-sdk/cmdline-tools/latest
+          curl -O https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+          unzip commandlinetools-linux-8512546_latest.zip
+          rm commandlinetools-linux-8512546_latest.zip
+          mv cmdline-tools/* ./
+          rm -rf cmdline-tools
 
-      - name: Install Build-Tools
+      - name: Set up ANDROID_HOME and PATH
         run: |
-          sdkmanager "build-tools;33.0.2"
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
 
-      - name: Install dependencies
+      - name: Install Android SDK Packages
         run: |
-          sudo apt-get update
-          sudo apt-get install -y zip unzip python3-pip
+          chmod +x $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
+            "platform-tools" \
+            "platforms;android-30" \
+            "build-tools;33.0.2"
+
+      - name: Install Buildozer and Compile APK
+        run: |
+          python3 -m pip install --upgrade pip
           pip3 install --user buildozer cython
-
-      - name: Build APK with Buildozer
-        run: |
-          buildozer init || true
+          export PATH=$PATH:$HOME/.local/bin
           buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: DataMonitor-APK
-          path: ./bin/*.apk
+          path: bin/*.apk
+
