@@ -34,8 +34,9 @@ jobs:
 
       - name: Install Android SDK Packages
         run: |
-          yes | sdkmanager --sdk_root=$HOME/android-sdk --licenses
-          sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+          chmod +x $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "platforms;android-31" "build-tools;31.0.0"
 
       - name: Install Buildozer and Compile
         run: |
@@ -50,4 +51,3 @@ jobs:
         with:
           name: DataMonitor-APK
           path: bin/*.apk
-
