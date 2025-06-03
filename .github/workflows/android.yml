@@ -21,13 +21,13 @@ jobs:
 
       - name: Download Android SDK Command-line Tools
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
+          mkdir -p $HOME/android-sdk/cmdline-tools/latest
+          cd $HOME/android-sdk/cmdline-tools/latest
           curl -O https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
           unzip commandlinetools-linux-8512546_latest.zip
-          mkdir -p latest
-          mv cmdline-tools latest/
           rm commandlinetools-linux-8512546_latest.zip
+          mv cmdline-tools/* ./
+          rm -rf cmdline-tools
 
       - name: Set up ANDROID_HOME and PATH
         run: |
