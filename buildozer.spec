@@ -24,11 +24,11 @@ include_patterns = *.txt, *.db
 log_level = 2
 warn_on_root = 1
 
-[app.android]
+# ✅ Versión recomendada
 android.sdk = 31
 android.ndk = 23b
 android.api = 31
 android.minapi = 21
-android.build_tools_version = 31.0.0
+android.build_tools_version = 33.0.2
 android.arch = armeabi-v7a
 package.class = MainApp
