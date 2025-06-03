@@ -19,23 +19,28 @@ jobs:
           distribution: 'temurin'
 
       - name: Install Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: '13.0'
-
-      - name: Install Android Build-Tools and accept licenses
         run: |
-          # Instalar herramientas necesarias
+          # Descargar e instalar las herramientas de línea de comandos del Android SDK
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
+          unzip /tmp/cmdline-tools.zip -d /tmp
+          mkdir -p $HOME/android-sdk/cmdline-tools/latest
+          mv /tmp/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
+          export ANDROID_HOME=$HOME/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+          # Instalar Build-Tools, NDK y plataformas
+          yes | sdkmanager "build-tools;33.0.2" "ndk;23.1.7779620" "platforms;android-31"
+          yes | sdkmanager --licenses
+
+      - name: Install dependencies
+        run: |
           sudo apt-get update
           sudo apt-get install -y zip unzip python3-pip
           pip3 install --user buildozer cython
 
-          # Instalar Build-Tools y NDK específicos
-          sdkmanager "build-tools;33.0.2" "ndk;23.1.7779620" "platforms;android-31"
-          yes | sdkmanager --licenses
-
       - name: Build APK with Buildozer
         run: |
+          export ANDROID_HOME=$HOME/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
           # Inicializar buildozer.spec si no existe
           buildozer init || true
           # Compilar la APK
