@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Android APK
 
 on:
   push:
@@ -9,49 +9,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'  # Usamos Python 3.9 para compatibilidad con Buildozer
+
+      - name: Configurar Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install dependencies and Buildozer
+      - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
-          sudo apt-get install -y zip unzip python3-pip curl libncurses5-dev
-          pip3 install --user --upgrade buildozer cython
+          sudo apt-get install -y zip unzip curl libncurses5-dev
 
-      - name: Download and set up Android SDK
+      - name: Instalar Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          sdk-tools-version: '10406996_latest'
+
+      - name: Aceptar licencias del Android SDK
+        run: yes | sdkmanager --licenses
+
+      - name: Instalar paquetes del Android SDK
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
-          curl -O https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-          unzip commandlinetools-linux-8512546_latest.zip -d .
-          mv cmdline-tools latest
-          chmod +x $HOME/android-sdk/cmdline-tools/latest/bin/*
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+          sdkmanager "platform-tools" "platforms;android-30" "build-tools;33.0.2" "build-tools;36.0.0"
 
-      - name: Accept Licenses and Install SDK Packages
+      - name: Verificar AIDL
+        run: find $ANDROID_HOME/build-tools -name aidl
+
+      - name: Instalar Buildozer y dependencias
         run: |
-          export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$PATH
-          yes | sdkmanager --sdk_root=$HOME/android-sdk --licenses
-          sdkmanager --sdk_root=$HOME/android-sdk \
-            "platform-tools" \
-            "platforms;android-30" \
-            "build-tools;33.0.2"
+          pip install --upgrade pip
+          pip install buildozer cython==0.29.36
 
-      - name: Build APK
-        run: |
-          export PATH=$HOME/.local/bin:$PATH
-          buildozer android debug
+      - name: Compilar APK con Buildozer
+        run: buildozer android debug
 
-      - name: Upload APK
+      - name: Subir APK como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: datamonitor-apk
           path: bin/*.apk
+
