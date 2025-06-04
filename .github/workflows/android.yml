@@ -26,36 +26,40 @@ jobs:
       - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
-          sudo apt-get install -y zip unzip curl libncurses5-dev
-
-      - name: Instalar Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          sdk-tools-version: '10406996_latest'
-
-      - name: Aceptar licencias del Android SDK
-        run: |
-          yes | sdkmanager --licenses || true  # Continúa incluso si hay errores
-          yes | sdkmanager --licenses  # Ejecuta dos veces para asegurar aceptación
-
-      - name: Instalar paquetes del Android SDK
-        run: |
-          sdkmanager "platform-tools" "platforms;android-30" "build-tools;33.0.0"
-
-      - name: Verificar AIDL
-        run: find $ANDROID_HOME/build-tools -name aidl
-
-      - name: Verificar ruta del Android SDK
-        run: echo "ANDROID_HOME=$ANDROID_HOME"
+          sudo apt-get install -y zip unzip curl libncurses5-dev build-essential
 
       - name: Instalar Buildozer y dependencias
         run: |
           pip install --upgrade pip
           pip install buildozer cython==0.29.36
 
+      # Buildozer descargará el SDK la primera vez que se ejecute
+      # Ejecutamos un comando simple para forzar la descarga inicial si es necesario
+      # y luego aceptamos las licencias para el SDK que Buildozer ha descargado.
+      - name: Aceptar licencias del Android SDK (Buildozer managed)
+        run: |
+          # Buildozer instalará el SDK en ~/.buildozer/android/platform/android-sdk
+          # La ruta exacta a sdkmanager puede variar ligeramente, pero esta es la común.
+          SDK_MANAGER_PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager"
+
+          # Ejecutar un comando buildozer simple para asegurar que el SDK básico se descargue
+          # Esto no compila, solo prepara el entorno si es la primera vez.
+          buildozer android --help || true
+
+          # Aceptar las licencias usando el sdkmanager del directorio de Buildozer
+          # Usamos 'yes' para aceptar automáticamente todas las licencias.
+          if [ -f "$SDK_MANAGER_PATH" ]; then
+            yes | "$SDK_MANAGER_PATH" --licenses
+          else
+            echo "sdkmanager not found at $SDK_MANAGER_PATH. Buildozer might not have downloaded it yet or path is different."
+            echo "Attempting to accept licenses using a potentially system-wide sdkmanager if available."
+            yes | sdkmanager --licenses || true # Fallback attempt
+          fi
+
+
       - name: Compilar APK con Buildozer
         run: |
-          export ANDROID_HOME=$ANDROID_HOME
+          # Buildozer ya sabe dónde está su SDK, no necesitas exportar ANDROID_HOME
           buildozer android debug
 
       - name: Subir APK como artefacto
