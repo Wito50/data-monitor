@@ -1,69 +1,81 @@
-name: Build Android APK
+name: Build Kivy Android App
 
 on:
-  push:
-    branches: [main]
+push:
+branches:
+- main # O la rama principal de tu repositorio
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+build:
+runs-on: ubuntu-latest # Usamos el último Ubuntu
 
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4 # Paso para obtener tu código del repositorio
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'  # Python 3.9 para compatibilidad con Buildozer
+    # Configura Python
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
 
-      - name: Configurar Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+    # Instala Buildozer y otras dependencias necesarias
+    - name: Install Buildozer and dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          git zip unzip openjdk-17-jdk autoconf libtool pkg-config \
+          zlib1g-dev libncurses5-dev libltdl-dev libffi-dev \
+          libssl-dev
+        pip install buildozer
 
-      - name: Instalar dependencias del sistema
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y zip unzip curl libncurses5-dev build-essential
+    # --- Pasos para solucionar el problema de licencia/cache ---
 
-      - name: Instalar Buildozer y dependencias
-        run: |
-          pip install --upgrade pip
-          pip install buildozer cython==0.29.36
+    # 1. Limpiar la caché de Buildozer
+    # Esto elimina el directorio .buildozer que contiene descargas y estados anteriores
+    - name: Clean Buildozer cache
+      run: rm -rf $HOME/.buildozer
 
-      # Buildozer descargará el SDK la primera vez que se ejecute
-      # Ejecutamos un comando simple para forzar la descarga inicial si es necesario
-      # y luego aceptamos las licencias para el SDK que Buildozer ha descargado.
-      - name: Aceptar licencias del Android SDK (Buildozer managed)
-        run: |
-          # Buildozer instalará el SDK en ~/.buildozer/android/platform/android-sdk
-          # La ruta exacta a sdkmanager puede variar ligeramente, pero esta es la común.
-          SDK_MANAGER_PATH="$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager"
-
-          # Ejecutar un comando buildozer simple para asegurar que el SDK básico se descargue
-          # Esto no compila, solo prepara el entorno si es la primera vez.
-          buildozer android --help || true
-
-          # Aceptar las licencias usando el sdkmanager del directorio de Buildozer
-          # Usamos 'yes' para aceptar automáticamente todas las licencias.
-          if [ -f "$SDK_MANAGER_PATH" ]; then
-            yes | "$SDK_MANAGER_PATH" --licenses
-          else
-            echo "sdkmanager not found at $SDK_MANAGER_PATH. Buildozer might not have downloaded it yet or path is different."
-            echo "Attempting to accept licenses using a potentially system-wide sdkmanager if available."
-            yes | sdkmanager --licenses || true # Fallback attempt
-          fi
+    # 2. Aceptar las licencias del SDK gestionado por Buildozer
+    # Buildozer descarga el SDK en $HOME/.buildozer/android/platform/android-sdk
+    # Este paso acepta las licencias de los componentes que Buildozer descarga
+    - name: Accept Android SDK licenses
+      run: |
+        # Esperar un momento para asegurar que el directorio del SDK esté listo si Buildozer lo está creando
+        sleep 10
+        # Intentar aceptar las licencias. Usamos '|| true' para que el workflow no falle
+        # si el directorio cmdline-tools o el sdkmanager aún no están disponibles
+        yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        # Un segundo intento con un sleep más largo por si acaso
+        sleep 20
+        yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
 
-      - name: Compilar APK con Buildozer
-        run: |
-          # Buildozer ya sabe dónde está su SDK, no necesitas exportar ANDROID_HOME
-          buildozer android debug
+    # 3. (Opcional) Instalar explícitamente las Build Tools 33.0.0
+    # Esto puede ayudar a asegurar que la versión correcta esté disponible antes de que Buildozer la necesite
+    - name: Install Build Tools 33.0.0
+      run: |
+        # Esperar un momento para asegurar que el sdkmanager esté listo
+        sleep 10
+        # Intentar instalar las build tools. Usamos '|| true' para evitar fallos
+        $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.0" || true
+        # Un segundo intento con un sleep más largo
+        sleep 20
+        $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.0" || true
 
-      - name: Subir APK como artefacto
-        uses: actions/upload-artifact@v4
-        with:
-          name: datamonitor-apk
-          path: bin/*.apk
+
+    # --- Fin de los pasos de solución ---
+
+    # Ahora ejecuta Buildozer para compilar la APK
+    - name: Build Android APK
+      # Asegúrate de que buildozer.spec esté en la raíz de tu repositorio
+      run: buildozer android debug
+      # Si tu buildozer.spec no está en la raíz, descomenta y ajusta la siguiente línea:
+      # working-directory: ./ruta/a/tu/proyecto
+
+    # Opcional: Subir la APK generada como un artefacto del workflow
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: bin/*.apk # Ajusta la ruta si tu APK se genera en otro lugar
