@@ -68,7 +68,7 @@ android.archs = arm64-v8a, armeabi-v7a
 # (bool) enables Android auto backup feature (Android API >=23)
 android.allow_backup = True
 
-android.build_tools_version = 36.0.0
+android.build_tools_version = 33.0.0
 
 [python]
 version = 3.9
