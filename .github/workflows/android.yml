@@ -15,7 +15,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'  # Usamos Python 3.9 para compatibilidad con Buildozer
+          python-version: '3.9'  # Python 3.9 para compatibilidad con Buildozer
 
       - name: Configurar Java
         uses: actions/setup-java@v4
@@ -34,7 +34,9 @@ jobs:
           sdk-tools-version: '10406996_latest'
 
       - name: Aceptar licencias del Android SDK
-        run: yes | sdkmanager --licenses
+        run: |
+          yes | sdkmanager --licenses || true  # Continúa incluso si hay errores
+          yes | sdkmanager --licenses  # Ejecuta dos veces para asegurar aceptación
 
       - name: Instalar paquetes del Android SDK
         run: |
@@ -43,17 +45,21 @@ jobs:
       - name: Verificar AIDL
         run: find $ANDROID_HOME/build-tools -name aidl
 
+      - name: Verificar ruta del Android SDK
+        run: echo "ANDROID_HOME=$ANDROID_HOME"
+
       - name: Instalar Buildozer y dependencias
         run: |
           pip install --upgrade pip
           pip install buildozer cython==0.29.36
 
       - name: Compilar APK con Buildozer
-        run: buildozer android debug
+        run: |
+          export ANDROID_HOME=$ANDROID_HOME
+          buildozer android debug
 
       - name: Subir APK como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: datamonitor-apk
           path: bin/*.apk
-
