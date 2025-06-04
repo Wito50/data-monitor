@@ -40,7 +40,7 @@ jobs:
 
       - name: Instalar paquetes del Android SDK
         run: |
-          sdkmanager "platform-tools" "platforms;android-30" "build-tools;33.0.2" "build-tools;36.0.0"
+          sdkmanager "platform-tools" "platforms;android-30" "build-tools;33.0.0"
 
       - name: Verificar AIDL
         run: find $ANDROID_HOME/build-tools -name aidl
